@@ -5,16 +5,7 @@
 struct Node
 {
     struct Node *next;
-    int priority;
-    int process_id;
-
-    // Variables for the output file
-    int finish_time;
-    int waiting_time;
-    int start_time;
-    int stopped_time;
-    int running_time;
-    int remaining_time;
+    struct process node_process;
 };
 
 // function to create a new linked list node
@@ -22,8 +13,8 @@ struct Node *newNode(int p_id, int p_priority)
 {
     struct Node *temp = (struct Node *)malloc(sizeof(struct Node));
     temp->next = NULL;
-    temp->process_id = p_id;
-    temp->priority = p_priority;
+    temp->node_process.id = p_id;
+    temp->node_process.priority = p_priority;
     return temp;
 }
 
@@ -54,7 +45,7 @@ void enQueue(struct Queue *q, struct Node *newNode)
         return;
     }
     struct Node *p = q->Head;
-    if (p->priority > temp->priority)
+    if (p->node_process.priority > temp->node_process.priority)
     {
         // Insert New Node before head
         temp->next = q->Head;
@@ -63,7 +54,7 @@ void enQueue(struct Queue *q, struct Node *newNode)
     else
     {
         // Traverse the list and find a position to insert new node
-        while (p->next != NULL && p->next->priority <= temp->priority)
+        while (p->next != NULL && p->next->node_process.priority <= temp->node_process.priority)
             p = p->next;
         // Either at the ends of the list
         // or at required position
@@ -105,7 +96,7 @@ void printQueue(struct Queue *q)
     struct Node *p = q->Head;
     while (p != NULL)
     {
-        printf("process ID:%d ->", p->process_id);
+        printf("process ID:%d ->", p->node_process.id);
         p = p->next;
     }
     printf("NULL\n");
