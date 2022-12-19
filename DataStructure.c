@@ -1,4 +1,5 @@
 // Linked list implementation of a Queue
+//definition of all the needed structures
 #include "headers.h"
 
 // Linked list node
