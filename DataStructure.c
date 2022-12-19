@@ -6,6 +6,7 @@ struct Node
 {
     struct Node *next;
     struct process node_process;
+    int pID; //the id of the process after forking, to be able to communicate with the process
 };
 
 // function to create a new linked list node
