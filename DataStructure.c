@@ -1,5 +1,5 @@
 // Linked list implementation of a Queue
-//definition of all the needed structures
+// definition of all the needed structures
 #include "headers.h"
 
 // Linked list node
@@ -7,7 +7,7 @@ struct Node
 {
     struct Node *next;
     struct process node_process;
-    int pID; //the id of the process after forking, to be able to communicate with the process
+    int pID; // the id of the process after forking, to be able to communicate with the process
 };
 
 // function to create a new linked list node
@@ -15,7 +15,7 @@ struct Node *newNode(int p_id, int p_priority)
 {
     struct Node *temp = (struct Node *)malloc(sizeof(struct Node));
     temp->next = NULL;
-    temp->node_process.id = p_id;
+    temp->pID = p_id;
     temp->node_process.priority = p_priority;
     return temp;
 }
