@@ -4,11 +4,16 @@ void clearResources(int);
 
 int main(int argc, char *argv[])
 {
-    signal(SIGINT, clearResources);
+    signal(SIGINT, clearResources); // for clearing all resources at the end of simulation
+    printf("%s\n", argv[0]);
     // TODO Initialization
+    
+    // 2. Read the chosen scheduling algorithm and its parameters, 
 
     // check for aruments
-    // argc should >=4 (out file , text filename , -sch , scheduling algorithm number)
+    // arguments between % is optional depending on algorithm
+
+    // argc should >=4 (.out file ,filename.txt , -sch , scheduling algorithm number, % -q, quantum number %)
     if (argc < 4)
     {
         printf("Too few arguments. Exiting!\n");
@@ -19,8 +24,9 @@ int main(int argc, char *argv[])
 
     if ((argc == 6) && (atoi(argv[3]) == 3 || atoi(argv[3]) == 4)) // RR or MLFL
     {
-        q = atoi(argv[5]);
+        q = atoi(argv[5]); // set quantum number
     }
+    //If algorithm needs a quantum and one wasn't specified.
     else if ((argc < 6) && (atoi(argv[3]) == 3 || atoi(argv[3]) == 4))
     {
         printf("The scheduling algorithm needs a quantum. Exiting!\n"); // don't ask for it
@@ -32,16 +38,19 @@ int main(int argc, char *argv[])
 
     FILE *file = fopen(argv[1], "r"); // file ptr
 
+    // * read and ignore, [^\n] -> any char except newline
     fscanf(file, "%*[^\n]"); // skip first line
 
     int no_processes = 0;
     int file_num;
 
+    // Getting number of processes.
     while (fscanf(file, "%d", &file_num) != EOF)
     {
         no_processes++;
     }
 
+    // dividing by 4 since I have 4 colns.
     no_processes /= 4;
 
     // resetting file pointer
@@ -51,6 +60,7 @@ int main(int argc, char *argv[])
     struct process process_array[no_processes];
     int i = 0;
 
+    // Filling process array with input data
     while (fscanf(file, "%d", &file_num) != EOF)
     {
         process_array[i].id = file_num;
@@ -67,13 +77,19 @@ int main(int argc, char *argv[])
 
     // for (i = 0; i < no_processes; i++)
     // {
-    //     printf("id %d arrival %d run %d p %d\n", process_array[i].id, process_array[i].arrival_time, process_array[i].runtime, process_array[i].priority);
+    //     printf("id %d arrival %d run %d p %d\n", process_array[i].id, 
+    //     process_array[i].arrival_time, process_array[i].runtime, process_array[i].priority);
     // }
 
-    // 2. Read the chosen scheduling algorithm and its parameters, if there are any from the argument list.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
     char *sch = argv[3];
 
     // 3. Initiate and create the scheduler and clock processes.
+
+    // Forking Clock
     pid_t pid;
     pid = fork();
 
@@ -81,32 +97,41 @@ int main(int argc, char *argv[])
     {
 
         // pid == -1 means error occurred
-        printf("error in forking occured\n");
+        printf("error in forking of clock occured\n");
         exit(EXIT_FAILURE);
     }
     else if (pid == 0)
     {
-
+        // The first argument is is the filename of the file that 
+        // contains the executable image of the new process.
+        // Second argument is array of character pointers
+        // First member is filename
+        // ,last member must be null 
+        // ,The rest is list of arguments available to new process
         char *argv_list[] = {"./clk.out", NULL};
 
         execv("./clk.out", argv_list);
         exit(0);
     }
+
+    // Forking Scheduler
     pid = fork();
     if (pid == -1)
     {
 
         // pid == -1 means error occurred
-        printf("error in forking occured\n");
+        printf("error in forking of scheduler occured\n");
         exit(EXIT_FAILURE);
     }
     else if (pid == 0)
     {
+        // to send number of processes as an argument to the forked scheduler.
         char temp_nProcess[10];
         sprintf(temp_nProcess, "%d", no_processes);
 
         // argument list (./scheduler.out , scheduling algo number , number of process , quantam if exist)
 
+        // If RR or MLFL
         if ((argc == 6) && (atoi(argv[3]) == 3 || atoi(argv[3]) == 4))
         {
 
@@ -114,7 +139,7 @@ int main(int argc, char *argv[])
             execv("./scheduler.out", argv_list);
             // printf("arguments sent successfully\n");
         }
-        else
+        else // If SJF, HPF
         {
             char *argv_list[] = {"./scheduler.out", sch, temp_nProcess, NULL};
             execv("./scheduler.out", argv_list);
@@ -145,11 +170,12 @@ int main(int argc, char *argv[])
     {
         message_buffer.msg_process = process_array[i];
 
-        if (process_array[i].arrival_time != getClk())
+        if (process_array[i].arrival_time > getClk()) // If no process's time has arrived yet
         {
             sleep(process_array[i].arrival_time - getClk());
         }
 
+        // If a process's arrival time has come/ passed, send to scheduler.
         send_approve = msgsnd(msgq_id, &message_buffer, sizeof(message_buffer.msg_process), !IPC_NOWAIT);
 
         if (send_approve == -1)
