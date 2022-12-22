@@ -36,7 +36,8 @@ int main(int argc, char *argv[])
     /////////////// THINGS TO COMPUTE ////////////////////////
     //CPU Utilization,waiting time,start time, finish time, stop time, TA, WTA
     //////////////////////////////////////////////////////
-
+    struct msgbuff message_buffer;
+    int rec_value = msgrcv(msgq_id, &message_buffer, sizeof(message_buffer.msg_process),0, !IPC_NOWAIT);
     // while there is still processes to complete
     // will decrement each time a process finishes.
     while (no_processes > 0)
@@ -44,14 +45,11 @@ int main(int argc, char *argv[])
         signal(SIGUSR1, ProcessTerminated);
 
         // Check if a process has arrived, if not, continue
-        struct msgbuff message_buffer;
+        // struct msgbuff message_buffer;
 
         //printf("Number of process: %d\n",no_processes);
-
-        int rec_value = msgrcv(msgq_id, &message_buffer, sizeof(message_buffer.msg_process),0, IPC_NOWAIT);
         
         //printf("rec_value: %d \n at time %d",rec_value, getClk());
-
 
             /////////////////////////////////// SJF /////////////////////////////////////
             if(sch == 1)
@@ -88,8 +86,8 @@ int main(int argc, char *argv[])
                     // Adding to queue where sorting occures according to the specified priority
                     enQueue(ready_queue,arrived_process);
                     
-                    Running_process->status = WAITING;
-                    printf("Checking if another process has arrived. First while\n");
+                    arrived_process->status = WAITING;
+                    printf("Checking if another process has arrived.\n");
                     rec_value = msgrcv(msgq_id, &message_buffer, sizeof(message_buffer.msg_process),0, IPC_NOWAIT);
                 }
                         
@@ -98,7 +96,7 @@ int main(int argc, char *argv[])
                 //take the process in the ready queue and run it
                 if(Running_process==NULL && isEmpty(ready_queue)==false)
                 {
-                    printf("AWEL WA7DA DA5LET HENA\n");
+                    printf("Case1: No process is running. \n");
                     //the running process is the one in front of the queue
                     Running_process=popQueue(ready_queue);
                     
@@ -106,6 +104,7 @@ int main(int argc, char *argv[])
                     // If this is the first run for this process, set start time.
                     if(Running_process->status == WAITING)
                     {
+                        // printf("setting status to running of process %d \n",Running_process->node_process.id);
                         Running_process->status = RUNNING;
                         Running_process->node_process.start_time=getClk();
                     }else // if this is a previously stopped process
@@ -123,6 +122,7 @@ int main(int argc, char *argv[])
                 //preemption
                 if(Running_process!=NULL && isEmpty(ready_queue)==false)
                 {
+                    //printf("Case2: There is a  process running & Recieved a new one. \n");
                     //priority of the currently running process
                     int running_process_priority=Running_process->node_process.priority;
                     //priority of the process received (in the ready queue)
@@ -157,30 +157,35 @@ int main(int argc, char *argv[])
 
                 // FORKING 
                 if (check_running==true)
-                {
+                {                
                     //this process doesn't have an id, it has not been forked before
-                    if( Running_process->pID==-1) 
+                    if(Running_process->pID==-1) 
                     //a new process that just started running for the first time
                     {
+                        printf("Starting forking process of process %d for the first time. \n",Running_process->node_process.id);
                         //the scheduler forks the process
                         int pid=fork();
-                        if (pid==0) //the fork is successful
+                        if (pid==0) //the fork is successful (I am the child)
                         {
                             //store the pid of the forked process
-                            Running_process->pID=getpid();
+                            printf("Pid of Processs %d is %d\n", Running_process->node_process.id,getpid());
+                            
                             //saving the remaining time of the running process
                             //to send to the process file
 
                             char* remaining_time_char=malloc(sizeof(char));
                             sprintf(remaining_time_char,"%d",Running_process->node_process.remaining_time);
                             char * arg[]={remaining_time_char,NULL};
-
+                            //printf("The clock before starting is: %d\n",getClk());
                             //sending the remaining time info to the process file
                             execv("./process.out",arg);
+                        }else if ( pid != -1)
+                        {   
+                            raise(SIGSTOP);
+                            Running_process->pID=getpid();                            
                         }
-                        
-                        //pause the scheduler to ensure synchronization 
-                        raise(SIGSTOP);
+                                                                            
+                        //pause the scheduler to ensure synchronization                         
                         //calculate the waiting time of the process
                         //Running_process->node_process.wait_time=(getClk()-Running_process->node_process.start_time)-(Running_process->node_process.runtime-Running_process->node_process.remaining_time);                        
                     }
@@ -195,8 +200,8 @@ int main(int argc, char *argv[])
                     }
                     
                     // Check for recieved processes.
+                    //printf("Checking for recieved messages after forking.\n");
                     rec_value = msgrcv(msgq_id, &message_buffer, sizeof(message_buffer.msg_process),0, IPC_NOWAIT);
-
                 }
             
         

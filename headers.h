@@ -66,7 +66,7 @@ void destroyClk(bool terminateAll)
 
 // needed structs
 
-enum STATUS
+enum process_status
 {
     RUNNING, // running for the first time
     WAITING, // process hasn't been run before (just arrived)

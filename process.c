@@ -6,11 +6,15 @@ int remainingtime;
 int main(int agrc, char *argv[])
 {
 
+    // printf("Before initialize clock in process. Time is %d \n",getClk());
     initClk();
+
+    // to ensure synchronization with scheduler
+    kill(getppid(),SIGCONT);
 
     remainingtime = atoi(argv[0]);
 
-    printf("Process with id: %d is started at time %d. \nRemaning Time is: %d \n",getpid(),getClk(),remainingtime);
+    printf("Process with id: %d is started at time %d. \nRemaining Time is: %d \n",getpid(),getClk(),remainingtime);
     
     int nowclk;
 
@@ -27,7 +31,7 @@ int main(int agrc, char *argv[])
 
     }
 
-    printf("Process with id: %d is terminating at time %d. \nRemaning Time is: %d \n",getpid(),getClk(),remainingtime);
+    printf("Process with id: %d is terminating at time %d. Remaning Time is: %d \n",getpid(),getClk(),remainingtime);
     // if remaning time =0, send to schedular process is finished.
     kill(getppid(),SIGUSR1); 
     destroyClk(false);

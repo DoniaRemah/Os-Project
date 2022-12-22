@@ -10,7 +10,7 @@ struct Node
     // priority for HPF & MLFL, Running time for SJF, Arrival time for RR
     int sorting_priority;
     int pID; // the id of the process after forking, to be able to communicate with the process
-    enum STATUS status;
+    enum process_status status;
 };
 
 // function to create a new linked list node
@@ -19,6 +19,7 @@ struct Node *newNode(struct process  process)
     struct Node *temp = (struct Node *)malloc(sizeof(struct Node));
     temp->next = NULL;
     temp->node_process = process;
+    temp->pID = -1;
     return temp;
 }
 
