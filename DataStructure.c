@@ -10,6 +10,7 @@ struct Node
     // priority for HPF & MLFL, Running time for SJF, Arrival time for RR
     int sorting_priority;
     int pID; // the id of the process after forking, to be able to communicate with the process
+    enum STATUS status;
 };
 
 // function to create a new linked list node

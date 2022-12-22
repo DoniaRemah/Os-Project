@@ -68,11 +68,11 @@ void destroyClk(bool terminateAll)
 
 enum STATUS
 {
-    RUNNING,
-    WAITING,
-    STOPPED,
-    COUNTIUNE,
-    FINSIHED
+    RUNNING, // running for the first time
+    WAITING, // process hasn't been run before (just arrived)
+    STOPPED, // Process is paused
+    CONTINUE, // process is running after being stopped.
+    FINSIHED // process is terminated 
 };
 
 struct process
