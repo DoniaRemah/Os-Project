@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            printf("process %d at time %d sent successfully\n", message_buffer.msg_process.id, message_buffer.msg_process.arrival_time);
+            printf("At process generator: Process %d at time %d sent successfully\n", message_buffer.msg_process.id, message_buffer.msg_process.arrival_time);
         }
     }
 
@@ -176,7 +176,7 @@ void clearResources(int signum)
     // TODO Clears all resources in case of interruption
 
     // getting the queue ID
-    int keyid = ftok("sendProces", 65);
+    int keyid = ftok("sendProcess", 65);
     int msqid = msgget(keyid, 0666 | IPC_CREAT);
 
     struct msqid_ds *buf;
