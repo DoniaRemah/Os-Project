@@ -6,6 +6,7 @@ int no_processes;
 
 int main(int argc, char *argv[])
 {
+
     printf("Schedular Started.\n");
     initClk(); // initizaling clock
 
@@ -23,6 +24,10 @@ int main(int argc, char *argv[])
 
     // Creating ready queue to store arrived processes.
     struct Queue* ready_queue = createQueue();
+
+    /////////////// THINGS TO COMPUTE ////////////////////////
+    //CPU Utilization,waiting time,start time, finish time, stop time, TA, WTA
+    //////////////////////////////////////////////////////
 
     // while there is still processes to complete
     // will decrement each time a process finishes.
@@ -44,7 +49,7 @@ int main(int argc, char *argv[])
 
         while (rec_value != -1)
         {
-            // send process
+            // send process to newNode
             struct Node* arrived_process = newNode(message_buffer.msg_process);
 
             /////////////////////////////////// SJF /////////////////////////////////////
@@ -64,7 +69,7 @@ int main(int argc, char *argv[])
                 // arrived_process->sorting_priority = arrived_process->node_process.priority;
                 // // Adding to queue where sorting occures according to the specified priority
                 // enQueue(ready_queue,arrived_process);
-                
+
                 rec_value=-1;
             }
             /////////////////////////////////// RR /////////////////////////////////////
@@ -78,10 +83,16 @@ int main(int argc, char *argv[])
             /////////////////////////////////// MLFL /////////////////////////////////////
             else if (sch == 4)
             {
+                
                 //TODO: Set sorting_priority according to Priority
                 arrived_process->sorting_priority = arrived_process->node_process.priority;
                 // Adding to queue where sorting occures according to the specified priority
                 enQueue(ready_queue,arrived_process);
+
+                
+                // 1. use popqueue to remove the process from readyqueue and get pointer to it.
+                // 2. after it finishes its quantum, Check for arrived processes then 
+                // update its sorting_priority and re-enqueue it to get its actual place
 
             }
         }
