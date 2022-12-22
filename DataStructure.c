@@ -13,13 +13,12 @@ struct Node
 };
 
 // function to create a new linked list node
-struct Node *newNode(int p_id, int p_priority,int sort_p)
+struct Node *newNode(int p_id, int p_priority)
 {
     struct Node *temp = (struct Node *)malloc(sizeof(struct Node));
     temp->next = NULL;
     temp->pID = p_id;
     temp->node_process.priority = p_priority;
-    temp->sorting_priority = sort_p;
     return temp;
 }
 
