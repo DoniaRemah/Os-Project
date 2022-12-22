@@ -9,7 +9,7 @@ void ProcessTerminated(int signum);
 int no_processes;
 struct Node* Running_process;
 bool check_running=false; //is there a process running rn or not
-
+struct Queue* ready_queue;
 int main(int argc, char *argv[])
 {
 
@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
     msgq_id = msgget(key_id, 0666 | IPC_CREAT); // create message queue and return id
 
     // Creating ready queue to store arrived processes.
-    struct Queue* ready_queue = createQueue();
+    ready_queue = createQueue();
 
     // indicating start time of a process each time it runs.
     // for pre-emptive algorithms, to calculate remaining time.
@@ -70,6 +70,7 @@ int main(int argc, char *argv[])
             /////////////////////////////////// HPF /////////////////////////////////////
             else if(sch == 2)
             {
+
                 
                 //TODO: Set sorting_priority according to Priority
                 
@@ -104,11 +105,12 @@ int main(int argc, char *argv[])
                     // If this is the first run for this process, set start time.
                     if(Running_process->status == WAITING)
                     {
-                        // printf("setting status to running of process %d \n",Running_process->node_process.id);
+                        printf("setting status to running of process %d \n",Running_process->node_process.id);
                         Running_process->status = RUNNING;
                         Running_process->node_process.start_time=getClk();
                     }else // if this is a previously stopped process
                     {
+                        printf("Recontinuing.\n");
                         Running_process->status = CONTINUE;
                     }
                     
@@ -122,7 +124,7 @@ int main(int argc, char *argv[])
                 //preemption
                 if(Running_process!=NULL && isEmpty(ready_queue)==false)
                 {
-                    //printf("Case2: There is a  process running & Recieved a new one. \n");
+                    
                     //priority of the currently running process
                     int running_process_priority=Running_process->node_process.priority;
                     //priority of the process received (in the ready queue)
@@ -131,9 +133,14 @@ int main(int argc, char *argv[])
 
                     if(running_process_priority > waiting_process_priority)
                     {
+                        printf("Case2: There is a  process running & Recieved a new one. \n");
+                        
                         //the waiting process has the priority to run
                         //preempt the running process
+                        printf("Process to be stopped %d\n",Running_process->pID);
                         int kill_running_process=kill(Running_process->pID,SIGSTOP);
+
+                        printf("After stopping the running process. \n");
                         Running_process->status = STOPPED;
                         //calculate the remaining time for the killed process
                         // Remaning time = Remaining time - (clk - round_start_time)
@@ -182,7 +189,7 @@ int main(int argc, char *argv[])
                         }else if ( pid != -1)
                         {   
                             raise(SIGSTOP);
-                            Running_process->pID=getpid();                            
+                            Running_process->pID=pid;                            
                         }
                                                                             
                         //pause the scheduler to ensure synchronization                         
@@ -195,7 +202,7 @@ int main(int argc, char *argv[])
                         //this is not its first time to run
                         //continue the killed process
                         kill(Running_process->pID,SIGCONT);
-                        Running_process->status = CONTINUE;
+                        // Running_process->status = CONTINUE;
                         round_start_time=getClk();
                     }
                     
@@ -256,12 +263,13 @@ int main(int argc, char *argv[])
     destroyClk(true);
 }
 
-
-
 void ProcessTerminated(int signum)
 {   
+    printf("In handler of termination \n");
     free(Running_process);
     Running_process = NULL;
     no_processes--;
     check_running = false;
+    printQueue(ready_queue);
+    printf("leaving handler of termination \n");
 }

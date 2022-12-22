@@ -14,7 +14,7 @@ int main(int agrc, char *argv[])
 
     remainingtime = atoi(argv[0]);
 
-    printf("Process with id: %d is started at time %d. \nRemaining Time is: %d \n",getpid(),getClk(),remainingtime);
+    printf("Process with id: %d is started at time %d. Remaining Time is: %d \n",getpid(),getClk(),remainingtime);
     
     int nowclk;
 
