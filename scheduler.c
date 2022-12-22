@@ -208,10 +208,9 @@ int main(int argc, char *argv[])
                     
                     // Check for recieved processes.
                     //printf("Checking for recieved messages after forking.\n");
-                    rec_value = msgrcv(msgq_id, &message_buffer, sizeof(message_buffer.msg_process),0, IPC_NOWAIT);
                 }
             
-        
+            rec_value = msgrcv(msgq_id, &message_buffer, sizeof(message_buffer.msg_process),0, IPC_NOWAIT);
 
             }
             /////////////////////////////////// RR /////////////////////////////////////
@@ -270,6 +269,8 @@ void ProcessTerminated(int signum)
     Running_process = NULL;
     no_processes--;
     check_running = false;
+    printf("////////////////////////////////////\n");
     printQueue(ready_queue);
+    printf("////////////////////////////////////\n");
     printf("leaving handler of termination \n");
 }

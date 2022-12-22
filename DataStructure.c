@@ -59,7 +59,7 @@ void enQueue(struct Queue *q, struct Node *newNode)
     else
     {
         // Traverse the list and find a position to insert new node
-        while (p->next != NULL && p->sorting_priority < temp->sorting_priority)
+        while (p->next != NULL && p->sorting_priority > temp->sorting_priority)
             p = p->next;
         // Either at the ends of the list
         // or at required position
