@@ -29,28 +29,45 @@ int main(int argc, char *argv[])
         // Check if a process has arrived, if not, continue
         int rec_value = msgrcv(msgq_id, &message_buffer, sizeof(message_buffer.msg_process),
          0, IPC_NOWAIT);
-        
+
         while (rec_value != -1)
         {
+            printf("process %d recieved successfully at time %d\n", message_buffer.msg_process.id, getClk());
+
+            struct Node* arrived_process = newNode(message_buffer.msg_process.id,
+            message_buffer.msg_process.priority);
             /////////////////////////////////// SJF /////////////////////////////////////
             if(atoi(argv[1]) == 1)
             {   
                 //TODO: Set sorting_priority according to running time
+                arrived_process->sorting_priority = arrived_process->node_process.runtime;
+                // Adding to queue where sorting occures according to the specified priority
+                enQueue(ready_queue,arrived_process);
             }
             /////////////////////////////////// HPF /////////////////////////////////////
             else if(atoi(argv[1]) == 2)
             {
                 //TODO: Set sorting_priority according to Priority
+                arrived_process->sorting_priority = arrived_process->pID;
+                // Adding to queue where sorting occures according to the specified priority
+                enQueue(ready_queue,arrived_process);
             }
             /////////////////////////////////// RR /////////////////////////////////////
             else if (atoi(argv[1]) == 3)
             {
                 //TODO: Set sorting_priority according to arrival time
+                arrived_process->sorting_priority = arrived_process->node_process.arrival_time;
+                // Adding to queue where sorting occures according to the specified priority
+                enQueue(ready_queue,arrived_process);
             }
             /////////////////////////////////// MLFL /////////////////////////////////////
             else if (atoi(argv[1]) == 4)
             {
                 //TODO: Set sorting_priority according to Priority
+                arrived_process->sorting_priority = arrived_process->pID;
+                // Adding to queue where sorting occures according to the specified priority
+                enQueue(ready_queue,arrived_process);
+
             }
         }
         
