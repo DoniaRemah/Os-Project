@@ -175,6 +175,7 @@ int main(int argc, char *argv[])
             sleep(process_array[i].arrival_time - getClk());
         }
 
+        printf("Clock is: %d before sending \n",getClk());
         // If a process's arrival time has come/ passed, send to scheduler.
         send_approve = msgsnd(msgq_id, &message_buffer, sizeof(message_buffer.msg_process), !IPC_NOWAIT);
 

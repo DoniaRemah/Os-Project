@@ -6,19 +6,18 @@
 struct Node
 {
     struct Node *next;
-    struct process node_process;
+    struct process  node_process;
     // priority for HPF & MLFL, Running time for SJF, Arrival time for RR
     int sorting_priority;
     int pID; // the id of the process after forking, to be able to communicate with the process
 };
 
 // function to create a new linked list node
-struct Node *newNode(int p_id, int p_priority)
+struct Node *newNode(struct process  process)
 {
     struct Node *temp = (struct Node *)malloc(sizeof(struct Node));
     temp->next = NULL;
-    temp->pID = p_id;
-    temp->node_process.priority = p_priority;
+    temp->node_process = process;
     return temp;
 }
 
