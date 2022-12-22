@@ -35,20 +35,22 @@ int main(int argc, char *argv[])
             /////////////////////////////////// SJF /////////////////////////////////////
             if(atoi(argv[1]) == 1)
             {   
-                
+                //TODO: Set sorting_priority according to running time
             }
             /////////////////////////////////// HPF /////////////////////////////////////
-            else if(atoi(argv[1]) == 2){
-
+            else if(atoi(argv[1]) == 2)
+            {
+                //TODO: Set sorting_priority according to Priority
             }
             /////////////////////////////////// RR /////////////////////////////////////
             else if (atoi(argv[1]) == 3)
             {
-
+                //TODO: Set sorting_priority according to arrival time
             }
             /////////////////////////////////// MLFL /////////////////////////////////////
-            else if (atoi(argv[1]) == 4){
-
+            else if (atoi(argv[1]) == 4)
+            {
+                //TODO: Set sorting_priority according to Priority
             }
         }
         
