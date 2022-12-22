@@ -7,16 +7,19 @@ struct Node
 {
     struct Node *next;
     struct process node_process;
+    // priority for HPF & MLFL, Running time for SJF, Arrival time for RR
+    int sorting_priority;
     int pID; // the id of the process after forking, to be able to communicate with the process
 };
 
 // function to create a new linked list node
-struct Node *newNode(int p_id, int p_priority)
+struct Node *newNode(int p_id, int p_priority,int sort_p)
 {
     struct Node *temp = (struct Node *)malloc(sizeof(struct Node));
     temp->next = NULL;
     temp->pID = p_id;
     temp->node_process.priority = p_priority;
+    temp->sorting_priority = sort_p;
     return temp;
 }
 
@@ -47,7 +50,7 @@ void enQueue(struct Queue *q, struct Node *newNode)
         return;
     }
     struct Node *p = q->Head;
-    if (p->node_process.priority > temp->node_process.priority)
+    if (p->sorting_priority > temp->sorting_priority)
     {
         // Insert New Node before head
         temp->next = q->Head;
@@ -56,7 +59,7 @@ void enQueue(struct Queue *q, struct Node *newNode)
     else
     {
         // Traverse the list and find a position to insert new node
-        while (p->next != NULL && p->next->node_process.priority <= temp->node_process.priority)
+        while (p->next != NULL && p->sorting_priority <= temp->sorting_priority)
             p = p->next;
         // Either at the ends of the list
         // or at required position
