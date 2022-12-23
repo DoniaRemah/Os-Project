@@ -10,11 +10,17 @@ int no_processes;
 struct Node* Running_process;
 bool check_running=false; //is there a process running rn or not
 struct Queue* ready_queue;
+bool quantum_finished;
+int quantum;
+
 int main(int argc, char *argv[])
 {
 
     printf("Schedular Started.\n");
     initClk(); // initizaling clock
+    // Setting quantum
+    quantum = atoi(argv[3]);
+    printf("\nMy quantum is %d\n",quantum);
 
     int sch = atoi(argv[1]); // scheduling algorithm number
     no_processes = atoi(argv[2]); // Number of processes to expect
@@ -179,7 +185,6 @@ int main(int argc, char *argv[])
                             
                             //saving the remaining time of the running process
                             //to send to the process file
-
                             char* remaining_time_char=malloc(sizeof(char));
                             sprintf(remaining_time_char,"%d",Running_process->node_process.remaining_time);
                             char * arg[]={remaining_time_char,NULL};
@@ -232,26 +237,119 @@ int main(int argc, char *argv[])
             /////////////////////////////////// MLFL /////////////////////////////////////
             else if (sch == 4)
             {
+
+                // 1. use popqueue to remove the process from readyqueue and get pointer to it.
+                // 2. after it finishes its quantum, Check for arrived processes then 
+                // update its sorting_priority and re-enqueue it to get its actual place
+                quantum_finished = false;
                 while (rec_value != -1)
                 {
+                    printf("process  %d recieved successfully at time %d\n", message_buffer.msg_process.id, getClk());
                     // send process to newNode
                     struct Node* arrived_process = newNode(message_buffer.msg_process);
                     //TODO: Set sorting_priority according to running time
                     arrived_process->sorting_priority = arrived_process->node_process.priority;
                     arrived_process->node_process.remaining_time = arrived_process->node_process.runtime;
+                    printf("\nBefore enqueing.\n");
                     // Adding to queue where sorting occures according to the specified priority
                     enQueue(ready_queue,arrived_process);
-                    Running_process->status = WAITING;  
+                    arrived_process->status = WAITING;
                     rec_value = msgrcv(msgq_id, &message_buffer, sizeof(message_buffer.msg_process),0, IPC_NOWAIT);
+                    printf("\nAfter recival with value %d.\n",rec_value);
+                }
+                
+                ///////////////////// QUANTUM FINISHED///////////////////////
+                // Stop the running process.
+                // Lower the running process priority and change status
+                // Re-enque it.
+                // Remove the running process to allow for another one to run.
+                // set the boolean for checking if a process is running to true.
+                if((getClk()-round_start_time) >= quantum  && Running_process!= NULL){
+
+                    printf("\nProcess %d finished it's quantum at time %d.\n",Running_process->node_process.id,getClk());
+                    kill(Running_process->pID,SIGSTOP);
+                    Running_process->sorting_priority--;
+                    Running_process->status= STOPPED;
+                    enQueue(ready_queue,Running_process);
+                    Running_process = NULL;
+                    quantum_finished = true;
                 }
 
-                // 1. use popqueue to remove the process from readyqueue and get pointer to it.
-                // 2. after it finishes its quantum, Check for arrived processes then 
-                // update its sorting_priority and re-enqueue it to get its actual place
+                //After each quantum, take the first process in the ready queue and run it
+                if(isEmpty(ready_queue)==false && Running_process == NULL)
+                {
+                    printf("\nPopping from Ready Queue\n");
+                    //the running process is the one in front of the queue
+                    Running_process=popQueue(ready_queue);
+                    
+                    // If this is the first run for this process, set start time.
+                    if(Running_process->status == WAITING)
+                    {
+                        printf("\nSetting status to running of process %d for the first time\n",Running_process->node_process.id);
+                        Running_process->status = RUNNING;
+                        Running_process->node_process.start_time=getClk();
+                    }else // if this is a previously stopped process
+                    {
+                        printf("\nRecontinuing the previously stopped process %d.\n",Running_process->node_process.id);
+                        Running_process->status = CONTINUE;
+                    }
+                    check_running=true;
+                }
 
+                ///////////// FORKING ////////////////////
+                if (check_running==true && quantum_finished == true)
+                {                
+                    //this process doesn't have an id, it has not been forked before
+                    if(Running_process->pID==-1) 
+                    //a new process that just started running for the first time
+                    {
+                        printf("Starting forking process of process %d for the first time. \n",Running_process->node_process.id);
+                        //the scheduler forks the process
+                        int pid=fork();
+                        if (pid==0) //the fork is successful (I am the child)
+                        {
+                            //store the pid of the forked process
+                            printf("Pid of Processs %d is %d\n", Running_process->node_process.id,getpid());
+                            
+                            //saving the remaining time of the running process
+                            //to send to the process file
+                        
+                            char* remaining_time_char=malloc(sizeof(char));
+                            sprintf(remaining_time_char,"%d",Running_process->node_process.remaining_time);
+                            char * arg[]={remaining_time_char,NULL};
+                            //printf("The clock before starting is: %d\n",getClk());
+                            //sending the remaining time info to the process file
+                            execv("./process.out",arg);
+                        }
+                        else if ( pid != -1)
+                        {   
+                            //pause the scheduler to ensure synchronization 
+                            raise(SIGSTOP);
+                            round_start_time=getClk();
+                            Running_process->pID=pid;                            
+                        }
+                        
+                        //calculate the waiting time of the process
+                        //Running_process->node_process.wait_time=(getClk()-Running_process->node_process.start_time)-(Running_process->node_process.runtime-Running_process->node_process.remaining_time);                        
+                    }
+                    else
+                    {
+                        //the process has an id, it has been forked before
+                        //this is not its first time to run
+                        //continue the killed process
+                        kill(Running_process->pID,SIGCONT);
+                        round_start_time=getClk();
+                        //Running_process->status = CONTINUE;
+                    }                   
+                    
+                }
+                // Check for recieved processes.
+                //printf("\nChecking for recieved messages after forking.\n");
+                rec_value = msgrcv(msgq_id, &message_buffer, sizeof(message_buffer.msg_process),0, IPC_NOWAIT);
+
+            // End of MLFL's if condition
             }
-        
-        
+            
 
 
 
@@ -269,6 +367,7 @@ void ProcessTerminated(int signum)
     Running_process = NULL;
     no_processes--;
     check_running = false;
+    quantum_finished = true;
     printf("////////////////////////////////////\n");
     printQueue(ready_queue);
     printf("////////////////////////////////////\n");
