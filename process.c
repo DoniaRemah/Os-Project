@@ -35,6 +35,13 @@ int main(int agrc, char *argv[])
             remainingtime--;
             run_count++;
             printf("\nFor process %d -> Run count is:%d, Remaining time is: %d. \n",getpid(),run_count,remainingtime);
+            if(remainingtime==0)
+            {
+                printf("\nProcess with id: %d is terminating at time %d. Remaning Time is: %d \n",getpid(),getClk(),remainingtime);
+                kill(getppid(),SIGUSR1); 
+                destroyClk(false);
+                return 0;
+            }
             if(run_count==quantum)
             //send a signal to the process to stop
             {
@@ -43,7 +50,9 @@ int main(int agrc, char *argv[])
                 if(remainingtime!=0)
                 {
                     kill(getppid(),SIGUSR2); 
-                }else{
+                }
+                else
+                {
                     kill(getppid(),SIGUSR1); 
                 }
                 
