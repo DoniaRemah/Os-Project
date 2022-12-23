@@ -360,10 +360,6 @@ int main(int argc, char *argv[])
                     if(isEmpty(ready_queue)==false)
                     {
 
-
-                        //the process stopped at time:
-                        Running_process->node_process.stopped_time=getClk();
-
                         //enqueue the process back in the ready queue
                         enQueue_at_back(ready_queue,Running_process);
 
@@ -373,6 +369,7 @@ int main(int argc, char *argv[])
                         Running_process->node_process.start_time=getClk();
                         round_start_time=getClk();
                         check_running=true;
+                        run_count=0;
 
                     }
                     else
@@ -455,7 +452,9 @@ void Process_finished_quantum(int signum)
     printf("\nProcess %d finished its quantum, its remaining time is %d",Running_process->node_process.id,Running_process->node_process.remaining_time);
     kill(Running_process->pID,SIGSTOP);
     Running_process->status=STOPPED;
+    //the process stopped at time:
+    Running_process->node_process.stopped_time=getClk();
     Running_process->node_process.remaining_time-=quantum;
-
-    
+    check_running=false;
+   
 }
