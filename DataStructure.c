@@ -126,10 +126,10 @@ struct Node *peekQueue(struct Queue *q)
 void enQueue_at_back(struct Queue *q,struct Node *newNode)
 {
     struct Node *temp =newNode;
-    newNode->next=NULL;
+    temp->next=NULL;
     if(q->Head==NULL) //the queue is empty
     {
-        q->Head=newNode;
+        q->Head=temp;
 
     }
     else
@@ -141,7 +141,7 @@ void enQueue_at_back(struct Queue *q,struct Node *newNode)
             last=last->next;
 
         }
-        last->next=newNode;
+        last->next=temp;
 
     }
 

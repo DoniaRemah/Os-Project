@@ -17,13 +17,13 @@ int main(int agrc, char *argv[])
     remainingtime = atoi(argv[0]);
     printf("Process with id: %d is started at time %d. Remaining Time is: %d \n",getpid(),getClk(),remainingtime);
     if (agrc==3)
-    //there is also the count and quantum
-    //for quantum algorithms
     {
+        //there is also the count and quantum
+        //for quantum algorithms
         run_count=atoi(argv[1]);
         quantum=atoi(argv[2]);
         int nowclk;
-
+        printf("Quantum in process %d is %d", getpid(), quantum);
         while (remainingtime > 0 )
         {
             // Ex: getclk = 1, nowclk = 1
@@ -34,21 +34,22 @@ int main(int agrc, char *argv[])
 
             remainingtime--;
             run_count++;
+            printf("\nFor process %d -> Run count is:%d, Remaining time is: %d. \n",getpid(),run_count,remainingtime);
             if(run_count==quantum)
             //send a signal to the process to stop
             {
-                printf("\n Sending signal to the scheduler, process with id %d finished its quantum.",getpid());
-                kill(getppid(),SIGUSR2); 
-
+                printf("\nProcess with id %d finished its quantum -> Sending signal to the scheduler\n",getpid());
+                run_count=0;
+                if(remainingtime!=0)
+                {
+                    kill(getppid(),SIGUSR2); 
+                }else{
+                    kill(getppid(),SIGUSR1); 
+                }
+                
             }
-
-
-
         }
-
-
-    }
-    
+    } 
     else
     {
         int nowclk;
@@ -64,18 +65,14 @@ int main(int agrc, char *argv[])
 
             remainingtime--;
 
-
         }
-        printf("Process with id: %d is terminating at time %d. Remaning Time is: %d \n",getpid(),getClk(),remainingtime);
+        printf("\nProcess with id: %d is terminating at time %d. Remaning Time is: %d \n",getpid(),getClk(),remainingtime);
         // if remaning time =0, send to schedular process is finished.
         kill(getppid(),SIGUSR1); 
-        destroyClk(false);
-
     }
 
     
-    
-
+    destroyClk(false);
 
 
 

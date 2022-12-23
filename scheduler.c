@@ -16,7 +16,7 @@ bool check_running=false; //is there a process running rn or not
 struct Queue* ready_queue;
 int quantum;
 int run_count;
-
+int round_start_time;
 
 int main(int argc, char *argv[])
 {
@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 
     // indicating start time of a process each time it runs.
     // for pre-emptive algorithms, to calculate remaining time.
-    int round_start_time =0; 
+    round_start_time =0; 
 
     /////////////// THINGS TO COMPUTE ////////////////////////
     //CPU Utilization,waiting time,start time, finish time, stop time, TA, WTA
@@ -231,7 +231,6 @@ int main(int argc, char *argv[])
             else if (sch == 3)
             {
                 
-                
                 // printf("\nRound Robin algorithm started!");
                 // printf("\n---------------------------------");
                 while (rec_value != -1)
@@ -248,7 +247,7 @@ int main(int argc, char *argv[])
                     enQueue_at_back(ready_queue,arrived_process);
                     printf("\n//////////////////////////////////////////////\n");
                     printQueue(ready_queue);
-                    printf("//////////////////////////////////////////////\n");
+                    printf("\n//////////////////////////////////////////////\n");
                     arrived_process->status = WAITING;  //process is waiting to run for the first time
                     rec_value = msgrcv(msgq_id, &message_buffer, sizeof(message_buffer.msg_process),0, IPC_NOWAIT);
                 }
@@ -297,16 +296,19 @@ int main(int argc, char *argv[])
                     round_start_time=getClk();
                     //set running to true
                     check_running = true;
-                    //restarting the run count
-                    run_count=0;
 
-                    //forking
-                
+                    //forking            
                     //case that this process has not been forked before
-                    //this process is running for the first time
+                    //this process is running for the first time       
+                }
+
+                if(check_running == true)
+                {
+
                     if (Running_process->pID==-1)
                     {
-                        printf("\nFORKING of process %d",Running_process->node_process.id);
+
+                        printf("\nForking of process %d at time %d.\n",Running_process->node_process.id, getClk());
                         int pid=fork();
                         if(pid==0)
                         //forking is successful
@@ -322,7 +324,7 @@ int main(int argc, char *argv[])
                             char* quantum_char = malloc(sizeof(char));
                             sprintf(runtime_char, "%d", Running_process->node_process.remaining_time);
                             sprintf(count_char, "%d", run_count);
-                            sprintf(count_char, "%d", quantum);
+                            sprintf(quantum_char, "%d", quantum);
                             char *arg[] = {runtime_char, count_char,quantum_char,NULL};
                             
                             //sending info to the process file
@@ -354,48 +356,7 @@ int main(int argc, char *argv[])
                         
 
                     }
-
-
-                    
-                    if(isEmpty(ready_queue)==false)
-                    {
-
-                        //enqueue the process back in the ready queue
-                        enQueue_at_back(ready_queue,Running_process);
-
-                        //get another process from the queue to run
-                        Running_process=popQueue(ready_queue);
-                        Running_process->status=RUNNING;
-                        Running_process->node_process.start_time=getClk();
-                        round_start_time=getClk();
-                        check_running=true;
-                        run_count=0;
-
-                    }
-                    else
-                    //the running process is the only one in the queue
-                    // give it a quantum and run it again
-
-                    {
-                        run_count=0;
-                        quantum=atoi(argv[3]);
-                        if (Running_process->node_process.remaining_time<quantum)
-                        {
-                            quantum=Running_process->node_process.remaining_time;
-
-                        }
-
-
-                    }
-                    
-
-
-
-                
                 }
-
-
-
                 //the very last thing, I check for receiving again
                 rec_value = msgrcv(msgq_id, &message_buffer, sizeof(message_buffer.msg_process),0, IPC_NOWAIT);
             }
@@ -434,27 +395,57 @@ int main(int argc, char *argv[])
 
 void ProcessTerminated(int signum)
 {   
-    printf("In handler of termination \n");
+    printf("\nIn handler of termination \n");
     free(Running_process);
     Running_process = NULL;
     no_processes--;
     check_running = false;
-    printf("////////////////////////////////////\n");
+    printf("\n////////////////////////////////////\n");
     printQueue(ready_queue);
-    printf("////////////////////////////////////\n");
-    printf("leaving handler of termination \n");
+    printf("\n////////////////////////////////////\n");
+    printf("\nleaving handler of termination \n");
 }
 
 void Process_finished_quantum(int signum)
 {
-    printf("In the handler of the finished quantum!");
+    printf("\nIn the handler of the finished quantum!");
     //stop the running process
-    printf("\nProcess %d finished its quantum, its remaining time is %d",Running_process->node_process.id,Running_process->node_process.remaining_time);
-    kill(Running_process->pID,SIGSTOP);
-    Running_process->status=STOPPED;
-    //the process stopped at time:
-    Running_process->node_process.stopped_time=getClk();
-    Running_process->node_process.remaining_time-=quantum;
-    check_running=false;
-   
+    //printf("\nProcess %d finished its quantum, its remaining time is %d",Running_process->node_process.id,Running_process->node_process.remaining_time);
+    
+    if(isEmpty(ready_queue)==true){
+        //the running process is the only one in the queue
+        // give it a quantum and run it again
+        run_count=0;
+        if (Running_process->node_process.remaining_time<quantum)
+        {
+            quantum=Running_process->node_process.remaining_time;
+
+        }
+    }
+    else
+    {
+        kill(Running_process->pID,SIGSTOP);
+        Running_process->status=STOPPED;
+        //the process stopped at time:
+        Running_process->node_process.stopped_time=getClk();
+        Running_process->node_process.remaining_time-=quantum;
+        check_running=false;
+
+        //enqueue the process back in the ready queue
+        enQueue_at_back(ready_queue,Running_process);
+
+        printf("\n//////////////////////////////////////////////\n");
+        printQueue(ready_queue);
+        printf("\n//////////////////////////////////////////////\n");
+
+        //get another process from the queue to run
+        Running_process=popQueue(ready_queue);
+        printf("\nProcess running after this quantum is %d\n", Running_process->node_process.id);
+        Running_process->status=RUNNING;
+        Running_process->node_process.start_time=getClk();
+        round_start_time=getClk();
+        check_running=true;
+        printf("\nLEAVING QUANTUM HANDLER!\n");
+    }
+
 }
