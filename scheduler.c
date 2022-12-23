@@ -246,9 +246,9 @@ int main(int argc, char *argv[])
                     // Adding to queue where sorting occures according to the specified priority
                     //the processes are arranged in the ready queue sorted ascendingly according to their arrival time
                     enQueue_at_back(ready_queue,arrived_process);
-                    printf("\n//////////////////////////////////////////////\n");
-                    printQueue(ready_queue);
-                    printf("\n//////////////////////////////////////////////\n");
+                    // printf("\n//////////////////////////////////////////////\n");
+                    // printQueue(ready_queue);
+                    // printf("\n//////////////////////////////////////////////\n");
                     arrived_process->status = WAITING;  //process is waiting to run for the first time
                     rec_value = msgrcv(msgq_id, &message_buffer, sizeof(message_buffer.msg_process),0, IPC_NOWAIT);
                 }
@@ -269,11 +269,11 @@ int main(int argc, char *argv[])
                     //if the remaining time of the process
                     //or its running time is less than the quantum
 
-                    if (Running_process->node_process.remaining_time<quantum)
-                    {
-                        //printf("\n!!!!!!!!!!CHANGING QUANTUM!! PROCESS ID %d!!!!!!!!!!\n",Running_process->node_process.id);
-                        quantum=Running_process->node_process.remaining_time;
-                    }
+                    // if (Running_process->node_process.remaining_time<quantum)
+                    // {
+                    //     //printf("\n!!!!!!!!!!CHANGING QUANTUM!! PROCESS ID %d!!!!!!!!!!\n",Running_process->node_process.id);
+                    //     // quantum=Running_process->node_process.remaining_time;
+                    // }
                     
                     //1- this is the first time this process has run
                     //set its start time
@@ -283,6 +283,7 @@ int main(int argc, char *argv[])
                         //set the status to running
                         Running_process->status=RUNNING;
                         Running_process->node_process.start_time=getClk();
+                        quantum=atoi(argv[3]);
                     }
                     else 
                     //this process has run before
@@ -376,9 +377,9 @@ int main(int argc, char *argv[])
                     arrived_process->node_process.remaining_time = arrived_process->node_process.runtime;
                     // Adding to queue where sorting occures according to the specified priority
                     enQueue(ready_queue,arrived_process);
-                    printf("\n//////////////////////////////////////////////\n");
-                    printQueue(ready_queue);
-                    printf("\n//////////////////////////////////////////////\n");
+                    // printf("\n//////////////////////////////////////////////\n");
+                    // printQueue(ready_queue);
+                    // printf("\n//////////////////////////////////////////////\n");
                     arrived_process->status = WAITING;  //process is waiting to run for the first time
                     rec_value = msgrcv(msgq_id, &message_buffer, sizeof(message_buffer.msg_process),0, IPC_NOWAIT);
                 }
@@ -389,9 +390,9 @@ int main(int argc, char *argv[])
                 if(Running_process==NULL && isEmpty(ready_queue)==false)
                 {
                     
-                    printf("\n////////////////////////////////////\n");
-                    printQueue(ready_queue);
-                    printf("\n////////////////////////////////////\n");
+                    // printf("\n////////////////////////////////////\n");
+                    // printQueue(ready_queue);
+                    // printf("\n////////////////////////////////////\n");
 
                     //printf("\nCase 1: No process is currently running" );
                     //take the process in front of the queue
@@ -411,7 +412,7 @@ int main(int argc, char *argv[])
                     //set its start time
                     if (Running_process->status==WAITING)
                     {
-                        printf("\nRunning process %d for the first time.",Running_process->node_process.id);
+                        // printf("\nRunning process %d for the first time.",Running_process->node_process.id);
                         //set the status to running
                         Running_process->status=RUNNING;
                         Running_process->node_process.start_time=getClk();
@@ -421,7 +422,7 @@ int main(int argc, char *argv[])
                     //this process has run before
                     //recontinuing the process
                     {
-                        printf("\nprocess %d has run before, RECONTINUING.",Running_process->node_process.id);
+                        // printf("\nprocess %d has run before, RECONTINUING.",Running_process->node_process.id);
                         //set the status to continue
                         Running_process->status = CONTINUE;
                         
@@ -519,9 +520,9 @@ void ProcessTerminated(int signum)
     Running_process = NULL;
     no_processes--;
     check_running = false;
-    printf("\n////////////////////////////////////\n");
-    printQueue(ready_queue);
-    printf("\n////////////////////////////////////\n");
+    // printf("\n////////////////////////////////////\n");
+    // printQueue(ready_queue);
+    // printf("\n////////////////////////////////////\n");
     printf("\nleaving handler of termination \n");
 }
 

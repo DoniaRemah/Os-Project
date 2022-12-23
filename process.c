@@ -23,7 +23,7 @@ int main(int agrc, char *argv[])
         run_count=atoi(argv[1]);
         quantum=atoi(argv[2]);
         int nowclk;
-        printf("\nQuantum in process %d is %d\n", getpid(), quantum); 
+        // printf("\nQuantum in process %d is %d\n", getpid(), quantum); 
         
         while (remainingtime > 0 )
         {
