@@ -1,15 +1,23 @@
 #include "DataStructure.c"
 
 
+
+
 // argument list (./scheduler.out , scheduling algo number , number of process , quantam if exist)
 
 //Forward declaration of signal handler
 void ProcessTerminated(int signum);
+void Process_finished_quantum(int signum);
+
 
 int no_processes;
 struct Node* Running_process;
 bool check_running=false; //is there a process running rn or not
 struct Queue* ready_queue;
+int quantum;
+int run_count;
+
+
 int main(int argc, char *argv[])
 {
 
@@ -18,6 +26,11 @@ int main(int argc, char *argv[])
 
     int sch = atoi(argv[1]); // scheduling algorithm number
     no_processes = atoi(argv[2]); // Number of processes to expect
+    if(argc==4)
+    { 
+        quantum=atoi(argv[3]);
+
+    }
 
     // Creating & initializing Message queue for processes generator communication
     key_t key_id;
@@ -43,6 +56,7 @@ int main(int argc, char *argv[])
     while (no_processes > 0)
     {
         signal(SIGUSR1, ProcessTerminated);
+        signal(SIGUSR2,Process_finished_quantum);
 
         // Check if a process has arrived, if not, continue
         // struct msgbuff message_buffer;
@@ -63,7 +77,7 @@ int main(int argc, char *argv[])
                     arrived_process->node_process.remaining_time = arrived_process->node_process.runtime;
                     // Adding to queue where sorting occures according to the specified priority
                     enQueue(ready_queue,arrived_process);
-                    //Running_process->status = 1;  
+                    arrived_process->status=WAITING; 
                     rec_value = msgrcv(msgq_id, &message_buffer, sizeof(message_buffer.msg_process),0, IPC_NOWAIT);
                 }
             }
@@ -81,7 +95,7 @@ int main(int argc, char *argv[])
                     // send process to newNode
                     struct Node* arrived_process = newNode(message_buffer.msg_process);
                     
-                    //TODO: Set sorting_priority according to running time
+                    //TODO: Set sorting_priority according to the process priority
                     arrived_process->sorting_priority = arrived_process->node_process.priority;
                     arrived_process->node_process.remaining_time = arrived_process->node_process.runtime;
                     // Adding to queue where sorting occures according to the specified priority
@@ -216,18 +230,177 @@ int main(int argc, char *argv[])
             /////////////////////////////////// RR /////////////////////////////////////
             else if (sch == 3)
             {
+                
+                
+                // printf("\nRound Robin algorithm started!");
+                // printf("\n---------------------------------");
                 while (rec_value != -1)
                 {
-                    // send process to newNode
+                    
+                    //create a new node with the process received
                     struct Node* arrived_process = newNode(message_buffer.msg_process);
+                    printf("\nAt scheduler: RECEIVED process %d, at time %d", arrived_process->node_process.id,getClk());
                     //TODO: Set sorting_priority according to arrival time
                     arrived_process->sorting_priority = arrived_process->node_process.arrival_time;
                     arrived_process->node_process.remaining_time = arrived_process->node_process.runtime;
                     // Adding to queue where sorting occures according to the specified priority
-                    enQueue(ready_queue,arrived_process);
-                    Running_process->status = WAITING;  
+                    //the processes are arranged in the ready queue sorted ascendingly according to their arrival time
+                    enQueue_at_back(ready_queue,arrived_process);
+                    printf("\n//////////////////////////////////////////////\n");
+                    printQueue(ready_queue);
+                    printf("//////////////////////////////////////////////\n");
+                    arrived_process->status = WAITING;  //process is waiting to run for the first time
                     rec_value = msgrcv(msgq_id, &message_buffer, sizeof(message_buffer.msg_process),0, IPC_NOWAIT);
                 }
+
+                //Round Robin logic
+
+
+                //case that there is no process running
+                //and the ready queue is not empty
+                //take the process in front of the queue and run it
+                if(Running_process==NULL && isEmpty(ready_queue)==false)
+                {
+                    printf("\nCase 1: No process is currently running" );
+                    //take the process in front of the queue
+                    Running_process=popQueue(ready_queue);
+                    run_count=0;
+
+                    //if the remaining time of the process
+                    //or its running time is less than the quantum
+
+                    if (Running_process->node_process.remaining_time<quantum)
+                    {
+                        quantum=Running_process->node_process.remaining_time;
+                    }
+                    
+                    //1- this is the first time this process has run
+                    //set its start time
+                    if (Running_process->status==WAITING)
+                    {
+                        printf("\nRunning process %d for the first time.",Running_process->node_process.id);
+                        //set the status to running
+                        Running_process->status=RUNNING;
+                        Running_process->node_process.start_time=getClk();
+                    }
+                    else 
+                    //this process has run before
+                    //recontinuing the process
+                    {
+                        printf("\nprocess %d has run before, RECONTINUING.",Running_process->node_process.id);
+                        //set the status to continue
+                        Running_process->status = CONTINUE;
+                        
+
+                    }
+                    //calculating the round start time
+                    round_start_time=getClk();
+                    //set running to true
+                    check_running = true;
+                    //restarting the run count
+                    run_count=0;
+
+                    //forking
+                
+                    //case that this process has not been forked before
+                    //this process is running for the first time
+                    if (Running_process->pID==-1)
+                    {
+                        printf("\nFORKING of process %d",Running_process->node_process.id);
+                        int pid=fork();
+                        if(pid==0)
+                        //forking is successful
+                        //I am the child
+                        {
+                            //send info to process file
+                            //send:
+                            //remaining time (new)
+                            //the run count
+                            //the quantum
+                            char *runtime_char = malloc(sizeof(char));
+                            char* count_char = malloc(sizeof(char));
+                            char* quantum_char = malloc(sizeof(char));
+                            sprintf(runtime_char, "%d", Running_process->node_process.remaining_time);
+                            sprintf(count_char, "%d", run_count);
+                            sprintf(count_char, "%d", quantum);
+                            char *arg[] = {runtime_char, count_char,quantum_char,NULL};
+                            
+                            //sending info to the process file
+                            execv("./process.out",arg);
+                        }
+                        else if (pid!=-1)
+                        //this is the parent  
+                        //the scheduler
+                        //the pid of the process is sent to the parent
+                        {
+                            //pause the scheduler to ensure synchronization
+                            raise(SIGSTOP);
+                            Running_process->pID=pid;
+                        }
+                        
+
+
+                    }
+                    else
+                    {
+                        //the process has been forked before
+                        //it is recontinued
+                        kill(Running_process->pID,SIGCONT);
+                        //update the round start time
+                        round_start_time=getClk();
+                        run_count=0;
+                        //status
+                        Running_process->status=CONTINUE;
+                        
+
+                    }
+
+
+                    
+                    if(isEmpty(ready_queue)==false)
+                    {
+
+
+                        //the process stopped at time:
+                        Running_process->node_process.stopped_time=getClk();
+
+                        //enqueue the process back in the ready queue
+                        enQueue_at_back(ready_queue,Running_process);
+
+                        //get another process from the queue to run
+                        Running_process=popQueue(ready_queue);
+                        Running_process->status=RUNNING;
+                        Running_process->node_process.start_time=getClk();
+                        round_start_time=getClk();
+                        check_running=true;
+
+                    }
+                    else
+                    //the running process is the only one in the queue
+                    // give it a quantum and run it again
+
+                    {
+                        run_count=0;
+                        quantum=atoi(argv[3]);
+                        if (Running_process->node_process.remaining_time<quantum)
+                        {
+                            quantum=Running_process->node_process.remaining_time;
+
+                        }
+
+
+                    }
+                    
+
+
+
+                
+                }
+
+
+
+                //the very last thing, I check for receiving again
+                rec_value = msgrcv(msgq_id, &message_buffer, sizeof(message_buffer.msg_process),0, IPC_NOWAIT);
             }
             /////////////////////////////////// MLFL /////////////////////////////////////
             else if (sch == 4)
@@ -241,7 +414,7 @@ int main(int argc, char *argv[])
                     arrived_process->node_process.remaining_time = arrived_process->node_process.runtime;
                     // Adding to queue where sorting occures according to the specified priority
                     enQueue(ready_queue,arrived_process);
-                    Running_process->status = WAITING;  
+                    arrived_process->status=WAITING; 
                     rec_value = msgrcv(msgq_id, &message_buffer, sizeof(message_buffer.msg_process),0, IPC_NOWAIT);
                 }
 
@@ -273,4 +446,16 @@ void ProcessTerminated(int signum)
     printQueue(ready_queue);
     printf("////////////////////////////////////\n");
     printf("leaving handler of termination \n");
+}
+
+void Process_finished_quantum(int signum)
+{
+    printf("In the handler of the finished quantum!");
+    //stop the running process
+    printf("\nProcess %d finished its quantum, its remaining time is %d",Running_process->node_process.id,Running_process->node_process.remaining_time);
+    kill(Running_process->pID,SIGSTOP);
+    Running_process->status=STOPPED;
+    Running_process->node_process.remaining_time-=quantum;
+
+    
 }

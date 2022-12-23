@@ -7,9 +7,9 @@
       "request": "launch",
       "args": [],
       "stopAtEntry": false,
-      "externalConsole": true,
-      "cwd": "c:/Users/aboue/Desktop/Uni/Senior 1 Fall/OS_Lolo/Project/Our project/Os-Project",
-      "program": "c:/Users/aboue/Desktop/Uni/Senior 1 Fall/OS_Lolo/Project/Our project/Os-Project/build/Debug/outDebug",
+      "externalConsole": false,
+      "cwd": "/root/Desktop/Project/our_project/Os-Project",
+      "program": "/root/Desktop/Project/our_project/Os-Project/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

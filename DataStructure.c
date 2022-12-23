@@ -121,3 +121,28 @@ struct Node *peekQueue(struct Queue *q)
     struct Node *temp = q->Head;
     return temp;
 }
+
+//function to insert a node at the back of the queue
+void enQueue_at_back(struct Queue *q,struct Node *newNode)
+{
+    struct Node *temp =newNode;
+    newNode->next=NULL;
+    if(q->Head==NULL) //the queue is empty
+    {
+        q->Head=newNode;
+
+    }
+    else
+    {
+        struct Node *last =q->Head;
+        //traverse to the end of the queue
+        while(last->next!=NULL)
+        {
+            last=last->next;
+
+        }
+        last->next=newNode;
+
+    }
+
+}
