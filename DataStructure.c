@@ -99,6 +99,7 @@ struct Node *popQueue(struct Queue *q)
 void printQueue(struct Queue *q)
 {
     struct Node *p = q->Head;
+    printf("\n");
     while (p != NULL)
     {
         printf("process ID:%d ->", p->node_process.id);

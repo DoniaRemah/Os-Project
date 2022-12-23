@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            printf("At process generator: Process %d at time %d sent successfully\n", message_buffer.msg_process.id, message_buffer.msg_process.arrival_time);
+            printf("\nAt process generator: Process %d at time %d sent successfully\n", message_buffer.msg_process.id, message_buffer.msg_process.arrival_time);
         }
     }
 
