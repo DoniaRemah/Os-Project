@@ -19,6 +19,14 @@ int run_count;
 int round_start_time;
 int sch;
 
+//output file variables
+FILE *output_log_file;
+FILE *output_perf_file;
+//.perf file variables
+float utilization = 0;
+float average_waiting = 0;
+float WTA=0;
+
 int main(int argc, char *argv[])
 {
 
@@ -39,6 +47,10 @@ int main(int argc, char *argv[])
 
     key_id = ftok("sendProcess", 65);           // create unique key
     msgq_id = msgget(key_id, 0666 | IPC_CREAT); // create message queue and return id
+
+    //opening the output files for writing
+    output_log_file = fopen("./scheduler.log", "w");
+    output_perf_file = fopen("./scheduler.perf", "w");
 
     // Creating ready queue to store arrived processes.
     ready_queue = createQueue();
@@ -92,9 +104,14 @@ int main(int argc, char *argv[])
                 // printf("Start of Algorithm 2\n");
                 while (rec_value != -1)
                 {
-                    printf("process  %d recieved successfully at time %d\n", message_buffer.msg_process.id, getClk());
+                    // printf("process  %d recieved successfully at time %d\n", message_buffer.msg_process.id, getClk());
+                    
+                    
+                    
                     // send process to newNode
                     struct Node* arrived_process = newNode(message_buffer.msg_process);
+                    //updating utilization 
+                    utilization+=arrived_process->node_process.runtime;
                     
                     //TODO: Set sorting_priority according to the process priority
                     arrived_process->sorting_priority = arrived_process->node_process.priority;
@@ -103,7 +120,8 @@ int main(int argc, char *argv[])
                     enQueue(ready_queue,arrived_process);
                     
                     arrived_process->status = WAITING;
-                    printf("Checking if another process has arrived.\n");
+                    
+                    // printf("Checking if another process has arrived.\n");
                     rec_value = msgrcv(msgq_id, &message_buffer, sizeof(message_buffer.msg_process),0, IPC_NOWAIT);
                 }
                         
@@ -112,7 +130,7 @@ int main(int argc, char *argv[])
                 //take the process in the ready queue and run it
                 if(Running_process==NULL && isEmpty(ready_queue)==false)
                 {
-                    printf("Case1: No process is running. \n");
+                    // printf("Case1: No process is running. \n");
                     //the running process is the one in front of the queue
                     Running_process=popQueue(ready_queue);
                     
@@ -120,13 +138,21 @@ int main(int argc, char *argv[])
                     // If this is the first run for this process, set start time.
                     if(Running_process->status == WAITING)
                     {
-                        printf("setting status to running of process %d \n",Running_process->node_process.id);
+                        // printf("setting status to running of process %d \n",Running_process->node_process.id);
                         Running_process->status = RUNNING;
+                        //calculate the wait time of the process
+                        Running_process->node_process.wait_time=getClk()-Running_process->node_process.arrival_time;
+                        //print this to output file
+                        fprintf(output_log_file, "At time %d process %d started arr %d total %d remain %d wait %d\n", getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.runtime, Running_process->node_process.wait_time);
                         Running_process->node_process.start_time=getClk();
                     }else // if this is a previously stopped process
                     {
                         printf("Recontinuing.\n");
                         Running_process->status = CONTINUE;
+                        //calculate the waiting time
+
+                        //print to the output file
+                        fprintf(output_log_file, "At time %d process %d resumed arr %d total %d remain %d wait %d\n", getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, round_start_time-Running_process->node_process.stopped_time);
                     }
                     
                     round_start_time = getClk();
@@ -148,14 +174,14 @@ int main(int argc, char *argv[])
 
                     if(running_process_priority > waiting_process_priority)
                     {
-                        printf("Case2: There is a  process running & Recieved a new one. \n");
+                        // printf("Case2: There is a  process running & Recieved a new one. \n");
                         
                         //the waiting process has the priority to run
                         //preempt the running process
-                        printf("Process to be stopped %d\n",Running_process->pID);
+                        // printf("Process to be stopped %d\n",Running_process->pID);
                         int kill_running_process=kill(Running_process->pID,SIGSTOP);
 
-                        printf("After stopping the running process. \n");
+                        // printf("After stopping the running process. \n");
                         Running_process->status = STOPPED;
                         //calculate the remaining time for the killed process
                         // Remaning time = Remaining time - (clk - round_start_time)
@@ -163,6 +189,9 @@ int main(int argc, char *argv[])
 
                         //store the time this process got stopped at
                         Running_process->node_process.stopped_time=getClk();
+
+                        //print this to the output file
+                        fprintf(output_log_file, "At time %d process %d stopped arr %d total %d remain %d wait %d\n", getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, Running_process->node_process.wait_time);
                         
                         //put the old process in the ready queue
                         enQueue(ready_queue,Running_process);
@@ -184,13 +213,13 @@ int main(int argc, char *argv[])
                     if(Running_process->pID==-1) 
                     //a new process that just started running for the first time
                     {
-                        printf("Starting forking process of process %d for the first time. \n",Running_process->node_process.id);
+                        // printf("Starting forking process of process %d for the first time. \n",Running_process->node_process.id);
                         //the scheduler forks the process
                         int pid=fork();
                         if (pid==0) //the fork is successful (I am the child)
                         {
                             //store the pid of the forked process
-                            printf("Pid of Processs %d is %d\n", Running_process->node_process.id,getpid());
+                            // printf("Pid of Processs %d is %d\n", Running_process->node_process.id,getpid());
                             
                             //saving the remaining time of the running process
                             //to send to the process file
@@ -227,6 +256,7 @@ int main(int argc, char *argv[])
             
             rec_value = msgrcv(msgq_id, &message_buffer, sizeof(message_buffer.msg_process),0, IPC_NOWAIT);
 
+            
             }
             /////////////////////////////////// RR /////////////////////////////////////
             else if (sch == 3)
@@ -507,6 +537,24 @@ int main(int argc, char *argv[])
 
 
     }
+
+    //printing the output to the .perf file 
+    //1-utilization
+    utilization=(utilization/getClk())*100;
+    //2-the average wait time
+    average_waiting=average_waiting/no_processes;
+    //3- the weighted turnaround time
+    WTA=WTA/no_processes;
+
+    //print to the .perf file
+    fprintf(output_perf_file, "CPU utilization= %.2f %% Avg \nWTA =%.2f \nAvg Waiting =%.2f\n", utilization, WTA, average_waiting);
+
+    fclose(output_log_file);
+    fclose(output_perf_file);
+
+    
+
+
     
 
 
@@ -515,6 +563,17 @@ int main(int argc, char *argv[])
 
 void ProcessTerminated(int signum)
 {   
+    //calculating the .perf file variables
+    //the wait time for every finished process is added 
+    //to be able to calculate the total average wait time at the end
+    average_waiting=average_waiting+Running_process->node_process.wait_time;
+    //the weighted turnaround time
+    //it is the total lifetime of the process 
+    //divided by the process runtime
+    //the wta of every process is added to calculate the total wta
+    WTA=WTA+(float)((getClk()-Running_process->node_process.arrival_time)/Running_process->node_process.runtime);
+    
+    
     printf("\nIn handler of termination for process %d. \n",Running_process->node_process.id);
     free(Running_process);
     Running_process = NULL;
