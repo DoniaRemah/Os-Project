@@ -99,6 +99,7 @@ struct Node *popQueue(struct Queue *q)
 void printQueue(struct Queue *q)
 {
     struct Node *p = q->Head;
+    printf("\n");
     while (p != NULL)
     {
         printf("process ID:%d ->", p->node_process.id);
@@ -120,4 +121,29 @@ struct Node *peekQueue(struct Queue *q)
         return NULL;
     struct Node *temp = q->Head;
     return temp;
+}
+
+//function to insert a node at the back of the queue
+void enQueue_at_back(struct Queue *q,struct Node *newNode)
+{
+    struct Node *temp =newNode;
+    temp->next=NULL;
+    if(q->Head==NULL) //the queue is empty
+    {
+        q->Head=temp;
+
+    }
+    else
+    {
+        struct Node *last =q->Head;
+        //traverse to the end of the queue
+        while(last->next!=NULL)
+        {
+            last=last->next;
+
+        }
+        last->next=temp;
+
+    }
+
 }

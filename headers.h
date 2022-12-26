@@ -87,7 +87,7 @@ struct process
     int wait_time;
     int stopped_time;
     int TA;
-    int WTA;
+    float WTA;
 };
 
 struct msgbuff
