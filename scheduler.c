@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
             /////////////////////////////////// SJF /////////////////////////////////////
             if(sch == 1)
             {   
-                while (rec_value != -1)
+                if (rec_value != -1)
                 {
                     // send process to newNode
                     struct Node* arrived_process = newNode(message_buffer.msg_process);
@@ -96,8 +96,30 @@ int main(int argc, char *argv[])
                     // Adding to queue where sorting occures according to the specified priority
                     enQueue(ready_queue,arrived_process);
                     arrived_process->status=WAITING; 
-                    rec_value = msgrcv(msgq_id, &message_buffer, sizeof(message_buffer.msg_process),0, IPC_NOWAIT);
                 }
+            
+                if (Running_process == NULL && isEmpty(ready_queue) == 0)
+                {
+                    Running_process=popQueue(ready_queue);
+                    Running_process->status = RUNNING;
+                    Running_process->node_process.start_time = getClk();
+                    Running_process->node_process.wait_time = getClk() - Running_process->node_process.arrival_time;
+                    int pid = fork();
+                    if (pid == 0)
+                    {
+                        char* remaining_time_char=malloc(sizeof(char));
+                        sprintf(remaining_time_char,"%d",Running_process->node_process.remaining_time);
+                        char * arg[]={remaining_time_char,NULL};
+                        //sending the remaining time info to the process file
+                        execv("./process.out",arg);
+                    }
+                    else
+                    {
+                        fprintf(scheduler_log, "At time %d process %d started arr %d total %d remain %d wait %d \n", Running_process->node_process.start_time, Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.remaining_time, Running_process->node_process.runtime, Running_process->node_process.wait_time);
+                        printf("At time %d process %d started arr %d total %d remain %d wait %d \n", Running_process->node_process.start_time, Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.remaining_time, Running_process->node_process.runtime, Running_process->node_process.wait_time);
+                    }
+                }
+                rec_value = msgrcv(msgq_id, &message_buffer, sizeof(message_buffer.msg_process),0, !IPC_NOWAIT);
             }
             /////////////////////////////////// HPF /////////////////////////////////////
             else if(sch == 2)
