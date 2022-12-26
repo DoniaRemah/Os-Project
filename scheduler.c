@@ -20,12 +20,12 @@ int round_start_time;
 int sch;
 
 //output file variables
-FILE *output_log_file;
-FILE *output_perf_file;
-//.perf file variables
-float utilization = 0;
-float average_waiting = 0;
-float WTA=0;
+FILE* scheduler_log;
+FILE* scheduler_perf;
+int sumRuntime = 0;
+int LastFinishTime = 0;
+int sumWaitingtime = 0;
+int sumWTA = 0;
 
 int main(int argc, char *argv[])
 {
@@ -49,8 +49,8 @@ int main(int argc, char *argv[])
     msgq_id = msgget(key_id, 0666 | IPC_CREAT); // create message queue and return id
 
     //opening the output files for writing
-    output_log_file = fopen("./scheduler.log", "w");
-    output_perf_file = fopen("./scheduler.perf", "w");
+    scheduler_log = fopen("./scheduler.log", "w");
+    scheduler_perf = fopen("./scheduler.perf", "w");
 
     // Creating ready queue to store arrived processes.
     ready_queue = createQueue();
@@ -110,8 +110,6 @@ int main(int argc, char *argv[])
                     
                     // send process to newNode
                     struct Node* arrived_process = newNode(message_buffer.msg_process);
-                    //updating utilization 
-                    utilization+=arrived_process->node_process.runtime;
                     
                     //TODO: Set sorting_priority according to the process priority
                     arrived_process->sorting_priority = arrived_process->node_process.priority;
@@ -142,17 +140,22 @@ int main(int argc, char *argv[])
                         Running_process->status = RUNNING;
                         //calculate the wait time of the process
                         Running_process->node_process.wait_time=getClk()-Running_process->node_process.arrival_time;
+                        round_start_time=getClk();
+                        Running_process->node_process.start_time=getClk();
                         //print this to output file
-                        fprintf(output_log_file, "At time %d process %d started arr %d total %d remain %d wait %d\n", getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.runtime, Running_process->node_process.wait_time);
+                        fprintf(scheduler_log, "At time %d process %d started arr %d total %d remain %d wait %d\n", getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.runtime, Running_process->node_process.wait_time);
                         Running_process->node_process.start_time=getClk();
                     }else // if this is a previously stopped process
                     {
                         printf("Recontinuing.\n");
                         Running_process->status = CONTINUE;
-                        //calculate the waiting time
+                        Running_process->node_process.wait_time=getClk()-LastFinishTime;
+                        Running_process->node_process.remaining_time=Running_process->node_process.runtime-(LastFinishTime-Running_process->node_process.start_time);
+                        //update the round start time
+                        round_start_time=getClk();
 
                         //print to the output file
-                        fprintf(output_log_file, "At time %d process %d resumed arr %d total %d remain %d wait %d\n", getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, round_start_time-Running_process->node_process.stopped_time);
+                        fprintf(scheduler_log, "At time %d process %d resumed arr %d total %d remain %d wait %d\n", getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, round_start_time-Running_process->node_process.stopped_time);
                     }
                     
                     round_start_time = getClk();
@@ -191,7 +194,7 @@ int main(int argc, char *argv[])
                         Running_process->node_process.stopped_time=getClk();
 
                         //print this to the output file
-                        fprintf(output_log_file, "At time %d process %d stopped arr %d total %d remain %d wait %d\n", getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, Running_process->node_process.wait_time);
+                        fprintf(scheduler_log, "At time %d process %d stopped arr %d total %d remain %d wait %d\n", getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, Running_process->node_process.wait_time);
                         
                         //put the old process in the ready queue
                         enQueue(ready_queue,Running_process);
@@ -538,19 +541,15 @@ int main(int argc, char *argv[])
 
     }
 
-    //printing the output to the .perf file 
-    //1-utilization
-    utilization=(utilization/getClk())*100;
-    //2-the average wait time
-    average_waiting=average_waiting/no_processes;
-    //3- the weighted turnaround time
-    WTA=WTA/no_processes;
+    float utilization=((float)sumRuntime/(float)LastFinishTime)*100;
+    fprintf(scheduler_perf,"CPU utilization = %0.2f%%Avg\n",utilization);
+    fprintf(scheduler_perf,"WTA=%.2f\n",(float)sumWTA/(float)no_processes);
+    fprintf(scheduler_perf,"Average waiting=%.2f\n",(float)sumWaitingtime/(float)no_processes);
 
-    //print to the .perf file
-    fprintf(output_perf_file, "CPU utilization= %.2f %% Avg \nWTA =%.2f \nAvg Waiting =%.2f\n", utilization, WTA, average_waiting);
 
-    fclose(output_log_file);
-    fclose(output_perf_file);
+    printf("End of Scheduler:\n");
+    fclose(scheduler_perf);
+    fclose(scheduler_log);
 
     
 
@@ -563,16 +562,13 @@ int main(int argc, char *argv[])
 
 void ProcessTerminated(int signum)
 {   
-    //calculating the .perf file variables
-    //the wait time for every finished process is added 
-    //to be able to calculate the total average wait time at the end
-    average_waiting=average_waiting+Running_process->node_process.wait_time;
-    //the weighted turnaround time
-    //it is the total lifetime of the process 
-    //divided by the process runtime
-    //the wta of every process is added to calculate the total wta
-    WTA=WTA+(float)((getClk()-Running_process->node_process.arrival_time)/Running_process->node_process.runtime);
-    
+    //For the scheduler_perf file 
+    sumRuntime+=Running_process->node_process.runtime;
+    sumWaitingtime+=Running_process->node_process.wait_time;
+    sumWTA+=Running_process->node_process.WTA;
+    LastFinishTime=Running_process->node_process.finish_time;
+
+    Running_process->status = FINSIHED;
     
     printf("\nIn handler of termination for process %d. \n",Running_process->node_process.id);
     free(Running_process);
