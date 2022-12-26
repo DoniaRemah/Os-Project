@@ -16,14 +16,14 @@ bool check_running=false; //is there a process running rn or not
 struct Queue* ready_queue;
 int quantum;
 int run_count;
-int round_start_time;
+int round_start_time; //this is the resumed time
 int sch;
 
 //output file variables
 FILE* scheduler_log;
 FILE* scheduler_perf;
 int sumRuntime = 0;
-int LastFinishTime = 0;
+int LastFinishTime = 0; //for the stopped time
 int sumWaitingtime = 0;
 int sumWTA = 0;
 
@@ -141,7 +141,6 @@ int main(int argc, char *argv[])
                         //calculate the wait time of the process
                         Running_process->node_process.wait_time=getClk()-Running_process->node_process.arrival_time;
                         round_start_time=getClk();
-                        Running_process->node_process.start_time=getClk();
                         //print this to output file
                         fprintf(scheduler_log, "At time %d process %d started arr %d total %d remain %d wait %d\n", getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.runtime, Running_process->node_process.wait_time);
                         Running_process->node_process.start_time=getClk();
@@ -192,6 +191,7 @@ int main(int argc, char *argv[])
 
                         //store the time this process got stopped at
                         Running_process->node_process.stopped_time=getClk();
+                        LastFinishTime=getClk();
 
                         //print this to the output file
                         fprintf(scheduler_log, "At time %d process %d stopped arr %d total %d remain %d wait %d\n", getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, Running_process->node_process.wait_time);
@@ -569,6 +569,7 @@ void ProcessTerminated(int signum)
     LastFinishTime=Running_process->node_process.finish_time;
 
     Running_process->status = FINSIHED;
+    fprintf(scheduler_log, "At time %d process %d finished arr %d total %d remain %d wait %d\n", getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, Running_process->node_process.wait_time);
     
     printf("\nIn handler of termination for process %d. \n",Running_process->node_process.id);
     free(Running_process);
