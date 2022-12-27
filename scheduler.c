@@ -309,7 +309,7 @@ int main(int argc, char *argv[])
                     
                     //create a new node with the process received
                     struct Node* arrived_process = newNode(message_buffer.msg_process);
-                    printf("\nAt scheduler: RECEIVED process %d, at time %d", arrived_process->node_process.id,getClk());
+                    //printf("\nAt scheduler: RECEIVED process %d, at time %d", arrived_process->node_process.id,getClk());
                     //TODO: Set sorting_priority according to arrival time
                     arrived_process->sorting_priority = arrived_process->node_process.arrival_time;
                     arrived_process->node_process.remaining_time = arrived_process->node_process.runtime;
@@ -331,7 +331,7 @@ int main(int argc, char *argv[])
                 //take the process in front of the queue and run it
                 if(Running_process==NULL && isEmpty(ready_queue)==false)
                 {
-                    printf("\nCase 1: No process is currently running" );
+                    //printf("\nCase 1: No process is currently running" );
                     //take the process in front of the queue
                     Running_process=popQueue(ready_queue);
                     
@@ -359,7 +359,7 @@ int main(int argc, char *argv[])
                     //set its start time
                     if (Running_process->status==WAITING)
                     {
-                        printf("\nRunning process %d for the first time.",Running_process->node_process.id);
+                        //printf("\nRunning process %d for the first time.",Running_process->node_process.id);
                         //set the status to running
                         Running_process->status=RUNNING;
                         Running_process->node_process.start_time=getClk();
@@ -373,11 +373,12 @@ int main(int argc, char *argv[])
                     //this process has run before
                     //recontinuing the process
                     {
-                        printf("\nprocess %d has run before, RECONTINUING.",Running_process->node_process.id);
+                        //printf("\nprocess %d has run before, RECONTINUING.",Running_process->node_process.id);
                         //set the status to continue
                         Running_process->status = CONTINUE;
 
                         Running_process->node_process.wait_time= Running_process->node_process.wait_time+(getClk()-Running_process->node_process.stopped_time);
+                        //Running_process->node_process.wait_time= Running_process->node_process.wait_time+(getClk()-Running_process->node_process.stopped_time);
                         fprintf(scheduler_log, "At time %d process %d resumed arr %d total %d remain %d wait %d \n",  getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, Running_process->node_process.wait_time);
 
                     }
@@ -397,7 +398,7 @@ int main(int argc, char *argv[])
                     if (Running_process->pID==-1)
                     {
 
-                        printf("\nForking of process %d at time %d.\n",Running_process->node_process.id, getClk());
+                        //printf("\nForking of process %d at time %d.\n",Running_process->node_process.id, getClk());
                         int pid=fork();
                         if(pid==0)
                         //forking is successful
@@ -434,7 +435,7 @@ int main(int argc, char *argv[])
                     }
                     else
                     {
-                        //the process has been forked before
+                        //the process has not been forked before
                         //it is recontinued
 
                         kill(Running_process->pID,SIGCONT);
@@ -462,7 +463,7 @@ int main(int argc, char *argv[])
                     
                     //create a new node with the process received
                     struct Node* arrived_process = newNode(message_buffer.msg_process);
-                    printf("\nAt scheduler: RECEIVED process %d, at time %d\n", arrived_process->node_process.id,getClk());
+                    //printf("\nAt scheduler: RECEIVED process %d, at time %d\n", arrived_process->node_process.id,getClk());
                     //TODO: Set sorting_priority according to arrival time
                     arrived_process->sorting_priority = arrived_process->node_process.priority;
                     arrived_process->node_process.remaining_time = arrived_process->node_process.runtime;
@@ -535,7 +536,7 @@ int main(int argc, char *argv[])
                     if (Running_process->pID==-1)
                     {
 
-                        printf("\nForking of process %d at time %d.\n",Running_process->node_process.id, getClk());
+                        //printf("\nForking of process %d at time %d.\n",Running_process->node_process.id, getClk());
                         int pid=fork();
                         if(pid==0)
                         //forking is successful
@@ -656,7 +657,7 @@ void ProcessTerminated(int signum)
 
 void Process_finished_quantum(int signum)
 {
-    printf("\nIn the handler of the finished quantum!");
+    //printf("\nIn the handler of the finished quantum!");
     //stop the running process
     //printf("\nProcess %d finished its quantum, its remaining time is %d",Running_process->node_process.id,Running_process->node_process.remaining_time);
     
@@ -722,7 +723,7 @@ void Process_finished_quantum(int signum)
             Running_process->node_process.start_time=getClk();
             first_time=true;
         }
-        printf("\nProcess running after this quantum is %d\n", Running_process->node_process.id);
+        //printf("\nProcess running after this quantum is %d\n", Running_process->node_process.id);
         //Running_process->status=RUNNING;
         
         check_running=true;
@@ -735,7 +736,7 @@ void Process_finished_quantum(int signum)
         //     fprintf(scheduler_log, "At time %d process %d resumed arr %d total %d remain %d wait %d \n",  getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, Running_process->node_process.wait_time);
         // }
         
-        printf("\nLEAVING QUANTUM HANDLER!\n");
+        //printf("\nLEAVING QUANTUM HANDLER!\n");
     }
 
 }
