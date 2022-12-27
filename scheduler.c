@@ -334,6 +334,16 @@ int main(int argc, char *argv[])
                     printf("\nCase 1: No process is currently running" );
                     //take the process in front of the queue
                     Running_process=popQueue(ready_queue);
+                    
+                    // if(Running_process->status == WAITING){
+                    //     Running_process->node_process.wait_time =getClk()-Running_process->node_process.arrival_time;
+                    //     Running_process->node_process.remaining_time = Running_process->node_process.runtime;
+                    //     fprintf(scheduler_log, "At time %d process %d started arr %d total %d remain %d wait %d \n",  getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, Running_process->node_process.wait_time);
+                    // }else{
+                        
+                    // }
+
+                    // Running_process->node_process.stopped_time=0;
                     run_count=0;
 
                     //if the remaining time of the process
@@ -353,7 +363,11 @@ int main(int argc, char *argv[])
                         //set the status to running
                         Running_process->status=RUNNING;
                         Running_process->node_process.start_time=getClk();
+                        Running_process->node_process.wait_time = getClk()-Running_process->node_process.arrival_time;
+                        Running_process->node_process.remaining_time=Running_process->node_process.runtime;
+                        
                         quantum=atoi(argv[3]);
+                        fprintf(scheduler_log, "At time %d process %d started arr %d total %d remain %d wait %d \n", getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, Running_process->node_process.wait_time);
                     }
                     else 
                     //this process has run before
@@ -362,7 +376,9 @@ int main(int argc, char *argv[])
                         printf("\nprocess %d has run before, RECONTINUING.",Running_process->node_process.id);
                         //set the status to continue
                         Running_process->status = CONTINUE;
-                        
+
+                        Running_process->node_process.wait_time= Running_process->node_process.wait_time+(getClk()-Running_process->node_process.stopped_time);
+                        fprintf(scheduler_log, "At time %d process %d resumed arr %d total %d remain %d wait %d \n",  getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, Running_process->node_process.wait_time);
 
                     }
                     //calculating the round start time
@@ -420,13 +436,18 @@ int main(int argc, char *argv[])
                     {
                         //the process has been forked before
                         //it is recontinued
+
                         kill(Running_process->pID,SIGCONT);
                         //update the round start time
                         round_start_time=getClk();
                         run_count=0;
                         //status
+                        if(Running_process->status == STOPPED){
+                            Running_process->node_process.resume_time = getClk();
+                            Running_process->node_process.wait_time= Running_process->node_process.wait_time+(Running_process->node_process.resume_time-Running_process->node_process.stopped_time);
+                            fprintf(scheduler_log, "At time %d process %d resumed arr %d total %d remain %d wait %d \n",  getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, Running_process->node_process.wait_time);
+                        }
                         Running_process->status=CONTINUE;
-                        
 
                     }
                 }
@@ -558,6 +579,10 @@ int main(int argc, char *argv[])
                         round_start_time=getClk();
                         run_count=0;
                         //status
+                        if(Running_process->status == STOPPED){
+                            Running_process->node_process.resume_time = getClk();
+
+                        }
                         Running_process->status=CONTINUE;
                         
 
@@ -646,6 +671,8 @@ void Process_finished_quantum(int signum)
 
         // }
 
+        Running_process->node_process.remaining_time-=quantum;
+
         if(sch == 4)
         {
             if(Running_process->sorting_priority <10){
@@ -658,11 +685,12 @@ void Process_finished_quantum(int signum)
     }
     else
     {
+        Running_process->node_process.stopped_time=getClk();
         kill(Running_process->pID,SIGSTOP);
         Running_process->status=STOPPED;
-        //the process stopped at time:
-        Running_process->node_process.stopped_time=getClk();
+        //the process stopped at time:      
         Running_process->node_process.remaining_time-=quantum;
+        fprintf(scheduler_log, "At time %d process %d stopped arr %d total %d remain %d wait %d \n", Running_process->node_process.stopped_time, Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, Running_process->node_process.wait_time);
         check_running=false;
 
         if(sch == 3)
@@ -680,17 +708,33 @@ void Process_finished_quantum(int signum)
             enQueue(ready_queue,Running_process);
         }
 
-        printf("\n//////////////////////////////////////////////\n");
-        printQueue(ready_queue);
-        printf("\n//////////////////////////////////////////////\n");
+        // printf("\n//////////////////////////////////////////////\n");
+        // printQueue(ready_queue);
+        // printf("\n//////////////////////////////////////////////\n");
 
+        bool first_time =false;
         //get another process from the queue to run
         Running_process=popQueue(ready_queue);
-        printf("\nProcess running after this quantum is %d\n", Running_process->node_process.id);
-        Running_process->status=RUNNING;
-        Running_process->node_process.start_time=getClk();
         round_start_time=getClk();
+        if(Running_process->status ==  WAITING){
+            // Running_process->node_process.stopped_time=0;
+            Running_process->node_process.wait_time =getClk()-Running_process->node_process.arrival_time;
+            Running_process->node_process.start_time=getClk();
+            first_time=true;
+        }
+        printf("\nProcess running after this quantum is %d\n", Running_process->node_process.id);
+        //Running_process->status=RUNNING;
+        
         check_running=true;
+        
+        if(first_time){
+            fprintf(scheduler_log, "At time %d process %d started arr %d total %d remain %d wait %d \n",  getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, Running_process->node_process.wait_time);
+        }
+        //else{
+        //     Running_process->node_process.wait_time= Running_process->node_process.wait_time+(round_start_time-Running_process->node_process.stopped_time);
+        //     fprintf(scheduler_log, "At time %d process %d resumed arr %d total %d remain %d wait %d \n",  getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, Running_process->node_process.wait_time);
+        // }
+        
         printf("\nLEAVING QUANTUM HANDLER!\n");
     }
 

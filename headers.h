@@ -86,6 +86,7 @@ struct process
     int finish_time;
     int wait_time;
     int stopped_time;
+    int resume_time;
     int round_start_time;
     int TA;
     float WTA;
