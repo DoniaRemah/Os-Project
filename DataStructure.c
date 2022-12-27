@@ -1,29 +1,25 @@
 // Linked list implementation of a Queue
+// definition of all the needed structures
 #include "headers.h"
 
 // Linked list node
 struct Node
 {
     struct Node *next;
-    int priority;
-    int process_id;
-
-    // Variables for the output file
-    int finish_time;
-    int waiting_time;
-    int start_time;
-    int stopped_time;
-    int running_time;
-    int remaining_time;
+    struct process  node_process;
+    // priority for HPF & MLFL, Running time for SJF, Arrival time for RR
+    int sorting_priority;
+    int pID; // the id of the process after forking, to be able to communicate with the process
+    enum process_status status;
 };
 
 // function to create a new linked list node
-struct Node *newNode(int p_id, int p_priority)
+struct Node *newNode(struct process  process)
 {
     struct Node *temp = (struct Node *)malloc(sizeof(struct Node));
     temp->next = NULL;
-    temp->process_id = p_id;
-    temp->priority = p_priority;
+    temp->node_process = process;
+    temp->pID = -1;
     return temp;
 }
 
@@ -54,7 +50,7 @@ void enQueue(struct Queue *q, struct Node *newNode)
         return;
     }
     struct Node *p = q->Head;
-    if (p->priority > temp->priority)
+    if (p->sorting_priority > temp->sorting_priority)
     {
         // Insert New Node before head
         temp->next = q->Head;
@@ -63,7 +59,7 @@ void enQueue(struct Queue *q, struct Node *newNode)
     else
     {
         // Traverse the list and find a position to insert new node
-        while (p->next != NULL && p->next->priority <= temp->priority)
+        while (p->next != NULL && p->sorting_priority > temp->sorting_priority)
             p = p->next;
         // Either at the ends of the list
         // or at required position
@@ -103,9 +99,10 @@ struct Node *popQueue(struct Queue *q)
 void printQueue(struct Queue *q)
 {
     struct Node *p = q->Head;
+    printf("\n");
     while (p != NULL)
     {
-        printf("process ID:%d ->", p->process_id);
+        printf("process ID:%d ->", p->node_process.id);
         p = p->next;
     }
     printf("NULL\n");
@@ -126,4 +123,27 @@ struct Node *peekQueue(struct Queue *q)
     return temp;
 }
 
+//function to insert a node at the back of the queue
+void enQueue_at_back(struct Queue *q,struct Node *newNode)
+{
+    struct Node *temp =newNode;
+    temp->next=NULL;
+    if(q->Head==NULL) //the queue is empty
+    {
+        q->Head=temp;
 
+    }
+    else
+    {
+        struct Node *last =q->Head;
+        //traverse to the end of the queue
+        while(last->next!=NULL)
+        {
+            last=last->next;
+
+        }
+        last->next=temp;
+
+    }
+
+}
