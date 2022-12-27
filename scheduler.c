@@ -751,7 +751,8 @@ void Process_finished_quantum(int signum)
     }
     else if (sch==4)
     {
-        if(peekQueue(ready_queue)->sorting_priority<Running_process->sorting_priority)
+        if(peekQueue(ready_queue)!= NULL){
+        if( peekQueue(ready_queue)->sorting_priority<Running_process->sorting_priority)
         {
             Running_process->node_process.stopped_time=getClk();
         kill(Running_process->pID,SIGSTOP);
@@ -809,6 +810,6 @@ void Process_finished_quantum(int signum)
 
         }
         
-    }
+    }}
 
 }
