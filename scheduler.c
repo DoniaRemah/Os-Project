@@ -508,7 +508,11 @@ int main(int argc, char *argv[])
                         //set the status to running
                         Running_process->status=RUNNING;
                         Running_process->node_process.start_time=getClk();
+                        Running_process->node_process.wait_time = getClk()-Running_process->node_process.arrival_time;
+                        Running_process->node_process.remaining_time=Running_process->node_process.runtime;
                         quantum = atoi(argv[3]);
+                        fprintf(scheduler_log, "At time %d process %d started arr %d total %d remain %d wait %d \n", getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, Running_process->node_process.wait_time);
+                    
                     }
                     else 
                     //this process has run before
@@ -517,6 +521,9 @@ int main(int argc, char *argv[])
                         // printf("\nprocess %d has run before, RECONTINUING.",Running_process->node_process.id);
                         //set the status to continue
                         Running_process->status = CONTINUE;
+                        Running_process->node_process.wait_time= Running_process->node_process.wait_time+(getClk()-Running_process->node_process.stopped_time);
+                        //Running_process->node_process.wait_time= Running_process->node_process.wait_time+(getClk()-Running_process->node_process.stopped_time);
+                        fprintf(scheduler_log, "At time %d process %d resumed arr %d total %d remain %d wait %d \n",  getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, Running_process->node_process.wait_time);
                         
 
                     }
@@ -582,6 +589,8 @@ int main(int argc, char *argv[])
                         //status
                         if(Running_process->status == STOPPED){
                             Running_process->node_process.resume_time = getClk();
+                            Running_process->node_process.wait_time= Running_process->node_process.wait_time+(Running_process->node_process.resume_time-Running_process->node_process.stopped_time);
+                            fprintf(scheduler_log, "At time %d process %d resumed arr %d total %d remain %d wait %d \n",  getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, Running_process->node_process.wait_time);
 
                         }
                         Running_process->status=CONTINUE;
@@ -684,13 +693,15 @@ void Process_finished_quantum(int signum)
 
 
     }
-    else
+    else if (sch==3)
     {
+        
         Running_process->node_process.stopped_time=getClk();
         kill(Running_process->pID,SIGSTOP);
         Running_process->status=STOPPED;
         //the process stopped at time:      
         Running_process->node_process.remaining_time-=quantum;
+        
         fprintf(scheduler_log, "At time %d process %d stopped arr %d total %d remain %d wait %d \n", Running_process->node_process.stopped_time, Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, Running_process->node_process.wait_time);
         check_running=false;
 
@@ -737,6 +748,67 @@ void Process_finished_quantum(int signum)
         // }
         
         //printf("\nLEAVING QUANTUM HANDLER!\n");
+    }
+    else if (sch==4)
+    {
+        if(peekQueue(ready_queue)->sorting_priority<Running_process->sorting_priority)
+        {
+            Running_process->node_process.stopped_time=getClk();
+        kill(Running_process->pID,SIGSTOP);
+        Running_process->status=STOPPED;
+        //the process stopped at time:      
+        Running_process->node_process.remaining_time-=quantum;
+        
+        fprintf(scheduler_log, "At time %d process %d stopped arr %d total %d remain %d wait %d \n", Running_process->node_process.stopped_time, Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, Running_process->node_process.wait_time);
+        check_running=false;
+
+        if(sch == 3)
+        {
+            //enqueue the process back in the ready queue
+            enQueue_at_back(ready_queue,Running_process);
+        }
+
+        if(sch == 4)
+        {
+            if(Running_process->sorting_priority <10){
+                Running_process->sorting_priority++;
+            }
+            printf("\nSorting priority of Process %d is %d\n",Running_process->node_process.id,Running_process->sorting_priority);       
+            enQueue(ready_queue,Running_process);
+        }
+
+        // printf("\n//////////////////////////////////////////////\n");
+        // printQueue(ready_queue);
+        // printf("\n//////////////////////////////////////////////\n");
+
+        bool first_time =false;
+        //get another process from the queue to run
+        Running_process=popQueue(ready_queue);
+        round_start_time=getClk();
+        if(Running_process->status ==  WAITING){
+            // Running_process->node_process.stopped_time=0;
+            Running_process->node_process.wait_time =getClk()-Running_process->node_process.arrival_time;
+            Running_process->node_process.start_time=getClk();
+            first_time=true;
+        }
+        //printf("\nProcess running after this quantum is %d\n", Running_process->node_process.id);
+        //Running_process->status=RUNNING;
+        
+        check_running=true;
+        
+        if(first_time){
+            fprintf(scheduler_log, "At time %d process %d started arr %d total %d remain %d wait %d \n",  getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, Running_process->node_process.wait_time);
+        }
+        //else{
+        //     Running_process->node_process.wait_time= Running_process->node_process.wait_time+(round_start_time-Running_process->node_process.stopped_time);
+        //     fprintf(scheduler_log, "At time %d process %d resumed arr %d total %d remain %d wait %d \n",  getClk(), Running_process->node_process.id, Running_process->node_process.arrival_time, Running_process->node_process.runtime, Running_process->node_process.remaining_time, Running_process->node_process.wait_time);
+        // }
+        
+        //printf("\nLEAVING QUANTUM HANDLER!\n");
+
+
+        }
+        
     }
 
 }
